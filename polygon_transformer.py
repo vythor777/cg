@@ -6,10 +6,10 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import math
 
-class PolygonTransformer:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Transformador de Polígonos")
+class TransformadorPoligono:
+    def __init__(self, janela_principal):
+        self.janela_principal = janela_principal
+        self.janela_principal.title("Transformador de Polígonos")
         
         # Configurações iniciais do polígono
         self.num_lados = 3
@@ -34,12 +34,12 @@ class PolygonTransformer:
         """Configura a área gráfica para exibição do polígono"""
         self.figura = Figure(figsize=(6, 6))
         self.grafico = self.figura.add_subplot(111)
-        self.canvas = FigureCanvasTkAgg(self.figura, master=self.root)
+        self.canvas = FigureCanvasTkAgg(self.figura, master=self.janela_principal)
         self.canvas.get_tk_widget().grid(row=0, column=1, rowspan=10)
     
     def configurar_controles(self):
         """Configura os controles da interface do usuário"""
-        painel_controles = ttk.Frame(self.root)
+        painel_controles = ttk.Frame(self.janela_principal)
         painel_controles.grid(row=0, column=0, sticky="n", padx=10)
         
         # Controle do número de lados
@@ -80,7 +80,7 @@ class PolygonTransformer:
         pontos = []
         raio = 1
         for i in range(self.num_lados):
-            angulo = (2 * math.pi * i / self.num_lados) + math.radians(self.angulo_rotacao)
+            angulo = 2 * math.pi * i / self.num_lados  
             x = raio * math.cos(angulo)
             y = raio * math.sin(angulo)
             pontos.append([x, y, 1])  # Coordenadas homogêneas
@@ -88,6 +88,16 @@ class PolygonTransformer:
     
     def aplicar_transformacao(self, pontos):
         """Aplica as transformações geométricas aos pontos do polígono"""
+        # Matriz de rotação 
+        angulo_rad = math.radians(self.angulo_rotacao)
+        cos_ang = math.cos(angulo_rad)
+        sen_ang = math.sin(angulo_rad)
+        matriz_rotacao = np.array([
+            [cos_ang, -sen_ang, 0],
+            [sen_ang, cos_ang, 0],
+            [0, 0, 1]
+        ])
+        
         # Matriz de translação
         matriz_translacao = np.array([
             [1, 0, self.deslocamento_x],
@@ -110,13 +120,17 @@ class PolygonTransformer:
         ])
         
         # Aplicar transformações em sequência
-        pontos_transformados = pontos.dot(matriz_translacao.T).dot(matriz_escala.T).dot(matriz_cisalhamento.T)
+        pontos_transformados = pontos.dot(matriz_rotacao.T).dot(matriz_escala.T).dot(matriz_cisalhamento.T).dot(matriz_translacao.T)
         return pontos_transformados
     
     def desenhar_poligono(self):
         """Desenha o polígono na área gráfica"""
         self.grafico.clear()
+        
+        # Calcula os pontos do polígono
         pontos = self.calcular_pontos_poligono()
+        
+        # Aplica as transformações
         pontos_transformados = self.aplicar_transformacao(pontos)
         
         # Extrair coordenadas x e y
@@ -135,7 +149,6 @@ class PolygonTransformer:
         self.grafico.set_ylim(-3, 3)
         self.grafico.set_aspect('equal')
         self.grafico.grid(True)
-        
         self.canvas.draw()
     
     def transladar(self, dx, dy):
@@ -175,6 +188,6 @@ class PolygonTransformer:
             pass
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = PolygonTransformer(root)
-    root.mainloop()
+    janela_principal = tk.Tk()
+    app = TransformadorPoligono(janela_principal)
+    janela_principal.mainloop()
